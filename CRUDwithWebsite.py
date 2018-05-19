@@ -31,13 +31,16 @@ def getRestaurant(restaurantId):
     return restaurantName.name
 
 #Update
-def editRestaurant(restaurant_id, newName):
-    restaurant = session.query(Restaurant).filter_by(id =restaurant_id).one()
+def editRestaurant(restaurantId, newName):
+    restaurant = session.query(Restaurant).filter_by(id =restaurantId).one()
     restaurant.name = newName
     session.add(restaurant)
     session.commit()
 
 #Delete
-def deleteRestaurant():
-    print "delete"
+def deleteRestaurant(restaurant_id):
+    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
+    session.delete(restaurant)
+    session.commit()
+   
 

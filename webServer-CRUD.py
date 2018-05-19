@@ -20,7 +20,7 @@ class webserverHandler(BaseHTTPRequestHandler):
                 for restaurant in restaurants:
                     output += "<p>" + restaurant.name + "</p>"
                     output += "<a href = '/restaurants/"+ str(restaurant.id)+"/edit'>edit</a></br>"
-                    output += "<a href =" + "  " + ">delete</a></br>"
+                    output += "<a href = '/restaurants/"+ str(restaurant.id)+"/delete'>delete</a></br>"
                     
                 output += "</body></html>"                
                 self.wfile.write(output)
@@ -59,8 +59,23 @@ class webserverHandler(BaseHTTPRequestHandler):
                 output += "</body></html>"
                 self.wfile.write(output)
                 print output        
-               
-                 
+
+            if self.path.endswith("/delete"):
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                restaurantId = os.path.basename(os.path.dirname(self.path))
+                restaurantName = CRUDwithWebsite.getRestaurant(restaurantId)
+                
+                output = ""
+                output += "<html><body>"
+                output += "<h2>Delete the restaurant:%s??</h2>" %restaurantName
+                output += "<form method = 'POST' enctype='multipart/form-data' action='/restaurants/%s/delete'>" %restaurantId
+                output += "<input type = 'submit' value = 'Delete'></form>"
+                output += "</body></html>"
+                self.wfile.write(output)
+                print output
+                
         except IOError:
             self.send_error(404, "File Not Found %s" %self.path)
 
@@ -111,6 +126,18 @@ class webserverHandler(BaseHTTPRequestHandler):
                 self.wfile.write(output)
                 print output
 
+            if self.path.endswith("/delete"):                
+                #fetch the restaurant id from the path
+                restaurantId = os.path.basename(os.path.dirname(self.path))
+
+                #invoke the delete function 
+                CRUDwithWebsite.deleteRestaurant(restaurantId)
+                
+                self.send_response(301)
+                self.send_header('Content-type','text/html')
+                self.send_header('Location','/restaurants')
+                self.end_headers()
+                
         except:
             self.send_error(404, "File Not Found %s" %self.path)
                 
