@@ -1,6 +1,7 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import CRUDwithWebsite
 import cgi
+import os
 
 #Request handler class
 class webserverHandler(BaseHTTPRequestHandler):
@@ -17,8 +18,8 @@ class webserverHandler(BaseHTTPRequestHandler):
                 output += "<a href = '/restaurants/new'>Add a new Restaurant</a>"
                 
                 for restaurant in restaurants:
-                    output += "<p>" + restaurant + "</p>"
-                    output += "<a href =" + " " + ">edit</a></br>"
+                    output += "<p>" + restaurant.name + "</p>"
+                    output += "<a href = '/restaurants/"+ str(restaurant.id)+"/edit'>edit</a></br>"
                     output += "<a href =" + "  " + ">delete</a></br>"
                     
                 output += "</body></html>"                
@@ -33,38 +34,82 @@ class webserverHandler(BaseHTTPRequestHandler):
 
                 output = ""
                 output += "<html><body>"            
-                output += """<form method = 'POST' enctype='multipart/form-data' action='/restaurant/new'>
+                output += """<form method = 'POST' enctype='multipart/form-data' action='/restaurants/new'>
                            <h2>Add a new restaurant </h2><input name = 'message' type = 'text'><input type = 'submit'></form>"""
                 output += "</body></html>"
                 self.wfile.write(output)
-                print output                
+                print output
                 
+            if self.path.endswith("/edit"):
+                self.send_response(200)
+                self.send_header('Content_type', 'text/html')
+                self.end_headers()
+
+                #os.path.basename returns the tail of path.split
+                #os.path.dirname returns the dir path till the parent directory
+                #to fetch restaurant id from restaurants/id/edit, fetch the parent path for the /edit and then fetch the tail
+                restaurantId = int(os.path.basename(os.path.dirname(self.path)))
+
+                restaurantName = CRUDwithWebsite.getRestaurant(restaurantId)
+                
+                output = ""
+                output += "<html><body>"
+                output += """<form method = 'POST' enctype='multipart/form-data' action='/restaurants/""" + str(restaurantId) + """/edit'>
+                          <h2>Edit restaurant: """ + restaurantName + """</h2><input name = 'message' type = 'text'><input type = 'submit'></form>"""
+                output += "</body></html>"
+                self.wfile.write(output)
+                print output        
+               
+                 
         except IOError:
             self.send_error(404, "File Not Found %s" %self.path)
 
     def do_POST(self):
         try:
-            self.send_response(301)
-            self.end_headers()
-            
-            ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-            if ctype == 'multipart/form-data':
-                fields=cgi.parse_multipart(self.rfile, pdict)
-                messagecontent = fields.get('message')
+            if self.path.endswith("/restaurants/new"):
+                self.send_response(301)
+                self.end_headers()
+                
+                ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+                if ctype == 'multipart/form-data':
+                    fields=cgi.parse_multipart(self.rfile, pdict)
+                    messagecontent = fields.get('message')
 
-            #Call the function addRestaurant in CRUDwithWebsite, to add the new restaurant to the database
-            CRUDwithWebsite.addRestaurant(messagecontent[0])
-            
-            output = ""
-            output += "<html><body>"
-            output += "<h1> %s successfully added </h1>" % messagecontent[0]
-            output += "<a href = '/restaurants'>Back to list of Restaurants</a>"
+                #Call the function addRestaurant in CRUDwithWebsite, to add the new restaurant to the database
+                CRUDwithWebsite.addRestaurant(messagecontent[0])
+                
+                output = ""
+                output += "<html><body>"
+                output += "<h1> %s successfully added </h1>" % messagecontent[0]
+                output += "<a href = '/restaurants'>Back to list of Restaurants</a>"
 
-            output += """<form method = 'POST' enctype='multipart/form-data' action='/restaurant/new'>
-                       <h2>Add a new restaurant </h2><input name = 'message' type = 'text'><input type = 'submit'></form>"""
-            output += "</body></html>"
-            self.wfile.write(output)
-            print output
+                output += """<form method = 'POST' enctype='multipart/form-data' action='/restaurant/new'>
+                           <h2>Add a new restaurant </h2><input name = 'message' type = 'text'><input type = 'submit'></form>"""
+                output += "</body></html>"
+                self.wfile.write(output)
+                print output
+
+            if self.path.endswith("/edit"):
+                self.send_response(301)
+                self.end_headers()
+
+                #fetch the restaurant id from the path
+                restaurantId = int(os.path.basename(os.path.dirname(self.path)))
+                                
+                ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+                if ctype == 'multipart/form-data':
+                    fields=cgi.parse_multipart(self.rfile, pdict)
+                    restaurantNewName = fields.get('message')
+                    
+                CRUDwithWebsite.editRestaurant(restaurantId,restaurantNewName[0])
+
+                output = ""
+                output += "<html><body>"
+                output += "<h1> %s successfully updated </h1>" % restaurantNewName[0]
+                output += "<a href = '/restaurants'>Back to list of Restaurants</a>"
+                output += "</body></html>"
+                self.wfile.write(output)
+                print output
 
         except:
             self.send_error(404, "File Not Found %s" %self.path)
